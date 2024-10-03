@@ -1,4 +1,6 @@
 import { MongoClient } from 'mongodb';
+import mongo from 'mongodb';
+import { hashPassword } from './utils';
 
 class DBClient {
   constructor() {
@@ -20,15 +22,46 @@ class DBClient {
   }
 
   async nbUsers() {
-    await this.client.connect();
     const users = await this.client.db(this.database).collection('users').countDocuments();
     return users;
   }
 
   async nbFiles() {
-    await this.client.connect();
     const users = await this.client.db(this.database).collection('files').countDocuments();
     return users;
+  }
+
+  async createUser(email, password) {
+    const hashedPwd = hashPassword(password);
+
+    const user = await this.client.db(this.database).collection('users').insertOne({ email, password: hashedPwd });
+    return user;
+  }
+
+  async getUser(email) {
+    const user = await this.client.db(this.database).collection('users').find({ email }).toArray();
+    if (!user.length) {
+      return null;
+    }
+    return user[0];
+  }
+
+  async getUserById(id) {
+    const _id = new mongo.ObjectID(id);
+    const user = await this.client.db(this.database).collection('users').find({ _id }).toArray();
+
+    if (!user.length) {
+      return null;
+    }
+    return user[0];
+  }
+
+  async userExist(email) {
+    const user = await this.getUser(email);
+    if (user) {
+      return true;
+    }
+    return false;
   }
 }
 
